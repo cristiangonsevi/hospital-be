@@ -13,5 +13,13 @@ router.post(
   ],
   controller.login
 );
+router.post(
+  '/google',
+  [
+    check('token', 'Field is required').not().isEmpty(),
+    checkFields,
+  ],
+  controller.googleSignIn
+);
 
 module.exports = { router };

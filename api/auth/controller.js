@@ -2,6 +2,7 @@ const authDao = require('./dao');
 const bcrypt = require('bcrypt');
 const { generateJwt } = require('../../helpers/jwt');
 const { single } = require('./dto');
+const { googleVerify } = require('../../helpers/google-verify');
 
 const login = async (req, res) => {
   try {
@@ -37,4 +38,32 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login };
+const googleSignIn = async (req, res) => {
+  const { token } = req.body;
+  try {
+    const googleUser = await googleVerify(token);
+    const findUserByEmail = await authDao.getUserByEmail(googleUser.email);
+    let newUser;
+    if (!findUserByEmail) {
+      newUser = await authDao.createUser({
+        ...googleUser,
+        password: '@@@',
+        google: true,
+      });
+    } else {
+      newUser = await authDao.updateTypeSignIn({
+        id: findUserByEmail._id,
+        image: googleUser.picture,
+      });
+    }
+    const tokenJwt = await generateJwt(newUser._id);
+    return res.status(200).json({
+      status: 200,
+      data: single(newUser, tokenJwt),
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+module.exports = { login, googleSignIn };
